@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ศูนย์รวมมินิเกมของฉัน</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #282c34;
+            color: white;
+            text-align: center;
+            padding: 50px;
+            margin: 0;
+        }
+        h1 { color: #61dafb; font-size: 3em; margin-bottom: 10px;}
+        p { font-size: 1.2em; color: #aaaaaa; margin-bottom: 40px; }
+        
+        .game-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .game-btn {
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            border-radius: 10px;
+            width: 300px;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .game-btn:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        .game-btn.coming-soon {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎮 My Mini Games 🎮</h1>
+    <p>ยินดีต้อนรับ! เลือกเกมที่คุณต้องการเล่นได้เลย</p>
+
+    <div class="game-menu">
+        <a href="emoji.html" class="game-btn">🧩 เกมจับคู่อีโมจิ</a>
+        
+        <a href="#" class="game-btn coming-soon">🔜 เกมที่ 2 (เร็วๆ นี้)</a>
+    </div>
+
+</body>
+</html>
