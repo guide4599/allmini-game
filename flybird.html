@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Cute Flappy Bird - Mobile Version</title>
+    <style>
+        * {
+            touch-action: manipulation; /* ป้องกันการซูมเมื่อแตะรัวๆ */
+            -webkit-tap-highlight-color: transparent; /* เอาแถบสีฟ้าเวลาแตะออก */
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #333;
+            overflow: hidden;
+            font-family: 'Tahoma', sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            background-color: #70c5ce;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* รักษาสัดส่วนเกม */
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="360" height="480"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let gameState = "IDLE";
+    let score = 0;
+    let bestScore = localStorage.getItem("flappyBest") || 0;
+    let frames = 0;
+
+    const gravity = 0.25;
+    const flapPower = -5;
+    const pipeSpeed = 2.5;
+    const pipeGap = 130;
+    const pipeWidth = 52;
+
+    const bird = {
+        x: 60,
+        y: 200,
+        width: 34,
+        height: 24,
+        velocity: 0,
+        rotation: 0,
+        wingPhase: 0,
+        
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            this.rotation = Math.min(Math.PI/4, Math.max(-Math.PI/4, this.velocity * 0.1));
+            ctx.rotate(this.rotation);
+
+            // ตัวนก
+            ctx.fillStyle = "#FFEB3B";
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 17, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // ปีก
+            this.wingPhase += (gameState === "PLAYING" ? 0.2 : 0.05);
+            let wingY = Math.sin(this.wingPhase) * 6;
+            ctx.fillStyle = "#FFF";
+            ctx.beginPath();
+            ctx.ellipse(-8, wingY, 10, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // ตา
+            ctx.fillStyle = "#FFF";
+            ctx.beginPath();
+            ctx.arc(8, -4, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.arc(10, -4, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // ปาก
+            ctx.fillStyle = "#FF5722";
+            ctx.beginPath();
+            ctx.moveTo(14, 0);
+            ctx.lineTo(24, -2);
+            ctx.lineTo(24, 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
+        },
+        update() {
+            if (gameState === "PLAYING") {
+                this.velocity += gravity;
+                this.y += this.velocity;
+            } else if (gameState === "IDLE") {
+                this.y = 200 + Math.sin(frames * 0.1) * 10; // ลอยขึ้นลงนิ่งๆ
+            }
+
+            if (this.y + 12 >= canvas.height - 50) {
+                this.y = canvas.height - 50 - 12;
+                endGame();
+            }
+            if (this.y - 12 <= 0) endGame();
+        }
+    };
+
+    let pipes = [];
+    function createPipe() {
+        let minPipeHeight = 50;
+        let maxPipeHeight = canvas.height - pipeGap - 50 - minPipeHeight;
+        let topHeight = Math.floor(Math.random() * (maxPipeHeight - minPipeHeight)) + minPipeHeight;
+        pipes.push({ x: canvas.width, top: topHeight, passed: false });
+    }
+
+    function drawPipes() {
+        pipes.forEach(p => {
+            drawSinglePipe(p.x, 0, p.top, true);
+            drawSinglePipe(p.x, p.top + pipeGap, canvas.height - p.top - pipeGap - 50, false);
+        });
+    }
+
+    function drawSinglePipe(x, y, h, isTop) {
+        let gradient = ctx.createLinearGradient(x, 0, x + pipeWidth, 0);
+        gradient.addColorStop(0, "#4CAF50");
+        gradient.addColorStop(0.5, "#8BC34A");
+        gradient.addColorStop(1, "#4CAF50");
+        
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = "#2E7D32";
+        ctx.lineWidth = 3;
+        
+        // วาดท่อหลัก
+        roundRect(ctx, x, y, pipeWidth, h, 0);
+        
+        // วาดหัวท่อ
+        let capY = isTop ? y + h - 25 : y;
+        ctx.fillStyle = gradient;
+        roundRect(ctx, x - 5, capY, pipeWidth + 10, 25, 5);
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    function drawBackground() {
+        // เมฆ
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        [[50, 80], [200, 120], [320, 60]].forEach(c => {
+            ctx.beginPath();
+            ctx.arc(c[0], c[1], 20, 0, Math.PI*2);
+            ctx.arc(c[0]+15, c[1]-10, 22, 0, Math.PI*2);
+            ctx.arc(c[0]+35, c[1], 18, 0, Math.PI*2);
+            ctx.fill();
+        });
+
+        // พื้น
+        ctx.fillStyle = "#795548";
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+        ctx.fillStyle = "#8BC34A";
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 10);
+    }
+
+    function update() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+        
+        if (gameState === "PLAYING") {
+            if (frames % 100 === 0) createPipe();
+            pipes.forEach((p, i) => {
+                p.x -= pipeSpeed;
+                if (bird.x + 12 > p.x && bird.x - 12 < p.x + pipeWidth) {
+                    if (bird.y - 10 < p.top || bird.y + 10 > p.top + pipeGap) endGame();
+                }
+                if (!p.passed && p.x + pipeWidth < bird.x) {
+                    score++;
+                    p.passed = true;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        localStorage.setItem("flappyBest", bestScore);
+                    }
+                }
+                if (p.x + pipeWidth < 0) pipes.splice(i, 1);
+            });
+            drawPipes();
+        }
+
+        bird.update();
+        bird.draw();
+        drawUI();
+        
+        frames++;
+        requestAnimationFrame(update);
+    }
+
+    function drawUI() {
+        ctx.fillStyle = "#FFF";
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 4;
+        ctx.textAlign = "center";
+
+        if (gameState === "IDLE") {
+            ctx.font = "bold 32px sans-serif";
+            ctx.strokeText("พร้อมลุย!", canvas.width/2, 150);
+            ctx.fillText("พร้อมลุย!", canvas.width/2, 150);
+            ctx.font = "20px sans-serif";
+            ctx.fillText("แตะหน้าจอเพื่อเริ่ม", canvas.width/2, 320);
+        }
+
+        if (gameState === "PLAYING") {
+            ctx.font = "bold 50px sans-serif";
+            ctx.strokeText(score, canvas.width/2, 80);
+            ctx.fillText(score, canvas.width/2, 80);
+        }
+
+        if (gameState === "GAMEOVER") {
+            ctx.fillStyle = "rgba(0,0,0,0.4)";
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "#FFF";
+            ctx.font = "bold 40px sans-serif";
+            ctx.strokeText("จบเกม!", canvas.width/2, 180);
+            ctx.fillText("จบเกม!", canvas.width/2, 180);
+            ctx.font = "24px sans-serif";
+            ctx.fillText(`คะแนน: ${score}`, canvas.width/2, 230);
+            ctx.fillText(`สูงสุด: ${bestScore}`, canvas.width/2, 270);
+            ctx.font = "bold 20px sans-serif";
+            ctx.strokeText("แตะเพื่อเล่นอีกครั้ง", canvas.width/2, 350);
+            ctx.fillText("แตะเพื่อเล่นอีกครั้ง", canvas.width/2, 350);
+        }
+    }
+
+    function handleInput(e) {
+        if(e) e.preventDefault();
+        if (gameState === "IDLE") {
+            gameState = "PLAYING";
+            score = 0;
+            pipes = [];
+            bird.y = 200;
+            bird.velocity = 0;
+        } else if (gameState === "PLAYING") {
+            bird.velocity = flapPower;
+        } else if (gameState === "GAMEOVER") {
+            gameState = "IDLE";
+        }
+    }
+
+    function endGame() {
+        if (gameState === "PLAYING") gameState = "GAMEOVER";
+    }
+
+    window.addEventListener("keydown", (e) => { if(e.code === "Space" || e.code === "ArrowUp") handleInput(); });
+    canvas.addEventListener("touchstart", handleInput, {passive: false});
+    canvas.addEventListener("mousedown", (e) => { if(e.button === 0) handleInput(); });
+
+    update();
+</script>
+</body>
+</html>
