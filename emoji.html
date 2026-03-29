@@ -2,9 +2,10 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>เกมจับคู่อีโมจิ | Memory Puzzle</title>
     <style>
+        * { box-sizing: border-box; } /* ป้องกันกรอบล้น */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             display: flex; 
@@ -12,90 +13,84 @@
             align-items: center; 
             background-color: #f0f8ff; 
             margin: 0; 
-            padding: 20px; 
+            padding: 15px; /* ลดขอบลงให้เหมาะกับมือถือ */
+            min-height: 100vh;
         }
-        h1 { color: #333; margin-bottom: 5px; font-size: 24px; text-align: center; }
+        h1 { color: #333; margin-bottom: 10px; font-size: 22px; text-align: center; }
         
         .stats { 
-            margin-bottom: 20px; 
-            font-size: 20px; 
+            margin-bottom: 15px; 
+            font-size: 18px; 
             color: #555; 
             background: white;
-            padding: 10px 30px;
+            padding: 8px 25px;
             border-radius: 30px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .moves { color: #e91e63; font-weight: bold; font-size: 24px; }
+        .moves { color: #e91e63; font-weight: bold; font-size: 22px; }
         
+        /* ปรับกระดานให้ยืดหยุ่น ยืดหดตามจอมือถืออัตโนมัติ */
         .game-board { 
             display: grid; 
-            grid-template-columns: repeat(4, 70px); 
+            grid-template-columns: repeat(4, 1fr); /* แบ่งเป็น 4 ช่องเท่าๆ กันเสมอ */
             gap: 8px; 
+            width: 100%;
+            max-width: 360px; /* ไม่ให้ใหญ่เกินไปในจอคอม */
             margin-bottom: 25px;
         }
         
         .card { 
-            width: 70px; 
-            height: 70px; 
+            width: 100%; 
+            aspect-ratio: 1 / 1; /* บังคับให้ไพ่เป็นสี่เหลี่ยมจัตุรัสเสมอ */
             background-color: #ff5722; 
             border-radius: 10px; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            font-size: 35px; 
+            font-size: 2rem; /* ขนาดอีโมจิปรับตามจอ */
             cursor: pointer; 
             color: transparent; 
             transition: transform 0.2s, background-color 0.3s; 
             user-select: none;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            -webkit-tap-highlight-color: transparent; /* เอาแถบสีฟ้าตอนกดในมือถือออก */
         }
         
         .card:active { transform: scale(0.95); }
         .card.flipped { background-color: #fff; color: #000; cursor: default; }
         .card.matched { background-color: #ffeb3b; color: #000; cursor: default; animation: pop 0.3s ease; }
         
-        /* จัดกลุ่มปุ่มกดให้อยู่ด้วยกัน */
         .action-buttons {
             display: flex;
-            gap: 15px; /* ระยะห่างระหว่างปุ่ม */
-            margin-bottom: 10px;
+            gap: 10px; 
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 360px;
+            justify-content: center;
         }
 
-        button { 
-            padding: 12px 20px; 
-            font-size: 16px; 
+        button, .home-btn { 
+            flex: 1; /* ให้ปุ่มกว้างเท่าๆ กัน */
+            padding: 12px 10px; 
+            font-size: 15px; 
             font-weight: bold;
+            text-align: center;
             cursor: pointer; 
-            background-color: #2196F3; 
             color: white; 
             border: none; 
             border-radius: 8px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background-color 0.2s, transform 0.2s;
-        }
-        button:hover { background-color: #0b7dda; transform: scale(1.05); }
-
-        /* ตกแต่งปุ่มกลับหน้าแรก */
-        .home-btn {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px; 
-            font-size: 16px; 
-            font-weight: bold;
             text-decoration: none;
-            background-color: #607D8B; 
-            color: white; 
-            border-radius: 8px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background-color 0.2s, transform 0.2s;
+            -webkit-appearance: none; /* บังคับ iOS ไม่ให้เปลี่ยนสไตล์ปุ่ม */
         }
-        .home-btn:hover { background-color: #455A64; transform: scale(1.05); }
+        button { background-color: #2196F3; }
+        .home-btn { background-color: #607D8B; display: flex; justify-content: center; align-items: center; }
 
         .visitor-counter {
-            margin-top: 30px;
+            margin-top: 10px;
             text-align: center;
             background-color: white;
-            padding: 15px 25px;
+            padding: 10px 20px;
             border-radius: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
@@ -117,12 +112,12 @@
     <div class="game-board" id="game-board"></div>
     
     <div class="action-buttons">
-        <button onclick="initGame()">🔄 เริ่มเกมใหม่</button>
-        <a href="index.html" class="home-btn">🏠 กลับหน้าเมนูหลัก</a>
+        <button onclick="initGame()">🔄 เริ่มใหม่</button>
+        <a href="index.html" class="home-btn">🏠 เมนูหลัก</a>
     </div>
 
     <div class="visitor-counter">
-        <p style="color: #888; font-size: 14px; margin-top: 0; margin-bottom: 8px; font-weight: bold;">จำนวนผู้เข้าชมเกมนี้</p>
+        <p style="color: #888; font-size: 13px; margin: 0 0 5px 0; font-weight: bold;">จำนวนผู้เข้าชม</p>
         <img src="https://profile-counter.glitch.me/guide4599/count.svg" alt="Visitor Count">
     </div>
 
@@ -188,7 +183,7 @@
 
                 if (matchedPairs === emojis.length) {
                     setTimeout(() => {
-                        alert(`🎉 ยินดีด้วย! คุณจับคู่สำเร็จแล้ว!\nใช้การเปิดไพ่ไปทั้งหมด: ${moves} ครั้ง\n\nรีเฟรชหรือกดปุ่มเริ่มใหม่เพื่อเล่นอีกรอบได้เลย!`);
+                        alert(`🎉 ยินดีด้วย! คุณใช้การเปิดไพ่ไปทั้งหมด: ${moves} ครั้ง`);
                     }, 500);
                 }
             } else {
