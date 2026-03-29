@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เกมจับคู่อีโมจิ | Memory Puzzle</title>
     <style>
-        /* ส่วนของการตกแต่งหน้าตาเกม (CSS) */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             display: flex; 
@@ -13,26 +12,37 @@
             align-items: center; 
             background-color: #f0f8ff; 
             margin: 0; 
-            padding: 30px; 
+            padding: 20px; 
         }
-        h1 { color: #333; margin-bottom: 5px; }
-        .stats { margin-bottom: 20px; font-size: 18px; color: #555; }
+        h1 { color: #333; margin-bottom: 5px; font-size: 24px; text-align: center; }
+        
+        .stats { 
+            margin-bottom: 20px; 
+            font-size: 20px; 
+            color: #555; 
+            background: white;
+            padding: 10px 30px;
+            border-radius: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .moves { color: #e91e63; font-weight: bold; font-size: 24px; }
         
         .game-board { 
             display: grid; 
-            grid-template-columns: repeat(4, 80px); /* สร้างตาราง 4x4 */
-            gap: 10px; 
+            grid-template-columns: repeat(4, 70px); 
+            gap: 8px; 
+            margin-bottom: 25px;
         }
         
         .card { 
-            width: 80px; 
-            height: 80px; 
-            background-color: #4CAF50; 
+            width: 70px; 
+            height: 70px; 
+            background-color: #ff5722; 
             border-radius: 10px; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            font-size: 40px; 
+            font-size: 35px; 
             cursor: pointer; 
             color: transparent; 
             transition: transform 0.2s, background-color 0.3s; 
@@ -44,9 +54,15 @@
         .card.flipped { background-color: #fff; color: #000; cursor: default; }
         .card.matched { background-color: #ffeb3b; color: #000; cursor: default; animation: pop 0.3s ease; }
         
+        /* จัดกลุ่มปุ่มกดให้อยู่ด้วยกัน */
+        .action-buttons {
+            display: flex;
+            gap: 15px; /* ระยะห่างระหว่างปุ่ม */
+            margin-bottom: 10px;
+        }
+
         button { 
-            margin-top: 25px; 
-            padding: 12px 24px; 
+            padding: 12px 20px; 
             font-size: 16px; 
             font-weight: bold;
             cursor: pointer; 
@@ -55,9 +71,34 @@
             border: none; 
             border-radius: 8px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, transform 0.2s;
         }
-        button:hover { background-color: #0b7dda; }
+        button:hover { background-color: #0b7dda; transform: scale(1.05); }
+
+        /* ตกแต่งปุ่มกลับหน้าแรก */
+        .home-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px; 
+            font-size: 16px; 
+            font-weight: bold;
+            text-decoration: none;
+            background-color: #607D8B; 
+            color: white; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        .home-btn:hover { background-color: #455A64; transform: scale(1.05); }
+
+        .visitor-counter {
+            margin-top: 30px;
+            text-align: center;
+            background-color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
 
         @keyframes pop {
             0% { transform: scale(1); }
@@ -68,22 +109,31 @@
 </head>
 <body>
 
-    <h1>🧩 เกมปริศนาจับคู่ 🧩</h1>
-    <div class="stats">จำนวนครั้งที่เปิด: <span id="moves" style="font-weight: bold; color: #e91e63;">0</span></div>
+    <h1>🧩 เกมจับคู่อีโมจิ 🧩</h1>
+    <div class="stats">
+        เปิดไพ่: <span id="moves" class="moves">0</span> ครั้ง
+    </div>
     
     <div class="game-board" id="game-board"></div>
-    <button onclick="initGame()">🔄 เริ่มเกมใหม่</button>
+    
+    <div class="action-buttons">
+        <button onclick="initGame()">🔄 เริ่มเกมใหม่</button>
+        <a href="index.html" class="home-btn">🏠 กลับหน้าเมนูหลัก</a>
+    </div>
+
+    <div class="visitor-counter">
+        <p style="color: #888; font-size: 14px; margin-top: 0; margin-bottom: 8px; font-weight: bold;">จำนวนผู้เข้าชมเกมนี้</p>
+        <img src="https://profile-counter.glitch.me/guide4599/count.svg" alt="Visitor Count">
+    </div>
 
     <script>
-        // ส่วนของระบบหลังบ้านและกติกาเกม (JavaScript)
-        const emojis = ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐸'];
-        let cards = [...emojis, ...emojis]; // จำลองไพ่เป็นคู่ (รวม 16 ใบ)
+        const emojis = ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐸', '🐯', '🦁', '🐮', '🐷'];
+        let cards = [...emojis, ...emojis]; 
         let moves = 0;
         let flippedCards = [];
         let matchedPairs = 0;
         let isLocked = false;
 
-        // ฟังก์ชันสลับตำแหน่งไพ่
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -91,7 +141,6 @@
             }
         }
 
-        // ฟังก์ชันสร้างกระดานและเริ่มเกม
         function initGame() {
             const board = document.getElementById('game-board');
             board.innerHTML = '';
@@ -100,9 +149,10 @@
             matchedPairs = 0;
             flippedCards = [];
             isLocked = false;
+            
             document.getElementById('moves').innerText = moves;
 
-            cards.forEach((emoji, index) => {
+            cards.forEach((emoji) => {
                 const card = document.createElement('div');
                 card.classList.add('card');
                 card.dataset.emoji = emoji;
@@ -111,16 +161,13 @@
             });
         }
 
-        // ฟังก์ชันเมื่อคลิกเปิดไพ่
         function flipCard() {
-            // ป้องกันการกดไพ่ที่เปิดอยู่แล้ว หรือกดรัวๆ เกิน 2 ใบ
             if (isLocked || this.classList.contains('flipped') || this.classList.contains('matched')) return;
 
             this.classList.add('flipped');
             this.innerText = this.dataset.emoji;
             flippedCards.push(this);
 
-            // ถ้าเปิดครบ 2 ใบ ให้เช็คว่าตรงกันไหม
             if (flippedCards.length === 2) {
                 moves++;
                 document.getElementById('moves').innerText = moves;
@@ -128,25 +175,23 @@
             }
         }
 
-        // ฟังก์ชันตรวจสอบการจับคู่
         function checkMatch() {
-            isLocked = true; // ล็อคกระดานชั่วคราวขณะเช็ค
+            isLocked = true; 
             const [card1, card2] = flippedCards;
 
             if (card1.dataset.emoji === card2.dataset.emoji) {
-                // จับคู่ถูก
                 card1.classList.add('matched');
                 card2.classList.add('matched');
                 matchedPairs++;
                 flippedCards = [];
                 isLocked = false;
 
-                // ตรวจสอบว่าชนะหรือยัง
                 if (matchedPairs === emojis.length) {
-                    setTimeout(() => alert(`🎉 ยินดีด้วย! คุณชนะแล้ว! 🎉\nคุณใช้การเปิดไพ่ไปทั้งหมด ${moves} ครั้ง`), 400);
+                    setTimeout(() => {
+                        alert(`🎉 ยินดีด้วย! คุณจับคู่สำเร็จแล้ว!\nใช้การเปิดไพ่ไปทั้งหมด: ${moves} ครั้ง\n\nรีเฟรชหรือกดปุ่มเริ่มใหม่เพื่อเล่นอีกรอบได้เลย!`);
+                    }, 500);
                 }
             } else {
-                // จับคู่ผิด ให้คว่ำไพ่กลับไปหลังจากผ่านไป 1 วินาที
                 setTimeout(() => {
                     card1.classList.remove('flipped');
                     card2.classList.remove('flipped');
@@ -154,11 +199,10 @@
                     card2.innerText = '';
                     flippedCards = [];
                     isLocked = false;
-                }, 1000);
+                }, 600); 
             }
         }
 
-        // สั่งให้เกมเริ่มทำงานทันทีที่โหลดหน้าเว็บเสร็จ
         initGame();
     </script>
 </body>
