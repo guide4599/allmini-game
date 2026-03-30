@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Lane Defense</title>
+    <style>
+        body {
+            background-color: #2c3e50;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        canvas {
+            background-color: #ecf0f1;
+            border: 4px solid #34495e;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .controls {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        #stats {
+            font-size: 20px;
+            margin-left: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🛡️ Mini Lane Defense</h1>
+    <canvas id="gameCanvas" width="800" height="300"></canvas>
+    
+    <div class="controls">
+        <button id="spawnBtn">เรียกทหาร (ราคา: 15 🪙)</button>
+        <span id="stats">เงิน: 50 🪙</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ข้อมูลฐาน
+        let playerBase = { x: 20, y: 100, width: 60, height: 100, hp: 100, color: '#3498db' };
+        let enemyBase = { x: 720, y: 100, width: 60, height: 100, hp: 100, color: '#e74c3c' };
+
+        let units = [];
+        let money = 50;
+        let frameCount = 0;
+        let gameOver = false;
+
+        const spawnBtn = document.getElementById('spawnBtn');
+        const statsDisplay = document.getElementById('stats');
+
+        class Unit {
+            constructor(x, y, team) {
+                this.x = x;
+                this.y = y;
+                this.team = team;
+                this.width = 20;
+                this.height = 30;
+                this.hp = 30;
+                this.maxHp = 30;
+                this.damage = 1;
+                // ทีมเราเดินขวา (บวก) ทีมศัตรูเดินซ้าย (ลบ)
+                this.speed = team === 'player' ? 1.5 : -1.5; 
+                this.color = team === 'player' ? '#2980b9' : '#c0392b';
+                this.isFighting = false;
+            }
+
+            draw() {
+                // วาดตัวละคร
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // วาดหลอดเลือด
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x, this.y - 10, this.width, 4);
+                ctx.fillStyle = '#2ecc71';
+                ctx.fillRect(this.x, this.y - 10, this.width * (this.hp / this.maxHp), 4);
+            }
+
+            update() {
+                if (!this.isFighting) {
+                    this.x += this.speed;
+                }
+            }
+        }
+
+        function updateUI() {
+            statsDisplay.innerText = `เงิน: ${money} 🪙`;
+            spawnBtn.disabled = money < 15;
+        }
+
+        // กดปุ่มเรียกทหาร
+        spawnBtn.addEventListener('click', () => {
+            if (money >= 15 && !gameOver) {
+                money -= 15;
+                // ปล่อยทหารจากหน้าฐานเรา
+                units.push(new Unit(playerBase.x + playerBase.width + 5, 135, 'player'));
+                updateUI();
+            }
+        });
+
+        function drawBase(base) {
+            ctx.fillStyle = base.color;
+            ctx.fillRect(base.x, base.y, base.width, base.height);
+            
+            // วาดเลือดฐาน
+            ctx.fillStyle = 'white';
+            ctx.font = '20px Arial';
+            ctx.fillText(`HP: ${base.hp}`, base.x + 5, base.y - 15);
+        }
+
+        function gameLoop() {
+            if (gameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frameCount++;
+
+            // วาดพื้นหลังเลน
+            ctx.fillStyle = '#bdc3c7';
+            ctx.fillRect(0, 150, canvas.width, 40);
+
+            drawBase(playerBase);
+            drawBase(enemyBase);
+
+            // ระบบอัตโนมัติ: เพิ่มเงินให้ผู้เล่นเรื่อยๆ
+            if (frameCount % 60 === 0) { // ทุกๆ 1 วินาที (ประมาณ 60 เฟรม)
+                money += 2;
+                updateUI();
+            }
+
+            // ระบบอัตโนมัติ: บอทปล่อยศัตรู
+            if (frameCount % 180 === 0) { // ทุกๆ 3 วินาที
+                units.push(new Unit(enemyBase.x - 25, 135, 'enemy'));
+            }
+
+            // คำนวณและวาด Unit
+            for (let i = 0; i < units.length; i++) {
+                let u1 = units[i];
+                u1.isFighting = false;
+
+                // เช็คการชนกับฐานศัตรู
+                if (u1.team === 'player' && u1.x + u1.width >= enemyBase.x) {
+                    u1.isFighting = true;
+                    if (frameCount % 30 === 0) enemyBase.hp -= u1.damage;
+                }
+                
+                // เช็คการชนกับฐานเรา
+                if (u1.team === 'enemy' && u1.x <= playerBase.x + playerBase.width) {
+                    u1.isFighting = true;
+                    if (frameCount % 30 === 0) playerBase.hp -= u1.damage;
+                }
+
+                // เช็คการชนกับ Unit ฝั่งตรงข้าม
+                for (let j = 0; j < units.length; j++) {
+                    let u2 = units[j];
+                    if (i !== j && u1.team !== u2.team) {
+                        // เช็ค Hitbox (แกน X)
+                        if (u1.x < u2.x + u2.width && u1.x + u1.width > u2.x) {
+                            u1.isFighting = true;
+                            // ทำดาเมจใส่กัน
+                            if (frameCount % 30 === 0) {
+                                u2.hp -= u1.damage;
+                            }
+                        }
+                    }
+                }
+
+                u1.update();
+                u1.draw();
+            }
+
+            // ลบตัวที่ตายออกจาก Array
+            units = units.filter(u => u.hp > 0);
+
+            // เช็คชนะ/แพ้
+            if (playerBase.hp <= 0) {
+                gameOver = true;
+                alert('แพ้แล้ว! ฐานคุณถูกทำลาย 😭');
+            } else if (enemyBase.hp <= 0) {
+                gameOver = true;
+                alert('ชนะแล้ว! คุณทำลายฐานศัตรูได้ 🎉');
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // เริ่มเกม
+        updateUI();
+        gameLoop();
+    </script>
+</body>
+</html>
